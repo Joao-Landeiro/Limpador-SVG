@@ -1,0 +1,703 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Vectora - Colorizador de SVG e Exportador PNG</title>
+    <!-- Tailwind CSS para Estilização Moderna -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Fundo quadriculado dinâmico para indicar transparência */
+        .checkerboard {
+            background-color: #ffffff;
+            background-image: linear-gradient(45deg, #e5e7eb 25%, transparent 25%),
+                              linear-gradient(-45deg, #e5e7eb 25%, transparent 25%),
+                              linear-gradient(45deg, transparent 75%, #e5e7eb 75%),
+                              linear-gradient(-45deg, transparent 75%, #e5e7eb 75%);
+            background-size: 20px 20px;
+            background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
+        }
+        /* Transição suave para efeitos de hover */
+        .transition-all-custom {
+            transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+</head>
+<body class="bg-slate-900 text-slate-100 font-sans min-h-screen flex flex-col">
+
+    <!-- Topbar / Cabeçalho -->
+    <header class="border-b border-slate-800 bg-slate-950/80 backdrop-blur sticky top-0 z-50 px-6 py-4">
+        <div class="max-w-7xl mx-auto flex flex-col sm:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="p-2.5 bg-gradient-to-tr from-indigo-500 to-sky-400 rounded-xl shadow-lg shadow-indigo-500/10">
+                    <svg class="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 21a4 4 0 01-4-4V5a2 2 0 012-2h4a2 2 0 012 2v12a4 4 0 01-4 4zm0 0h12a2 2 0 002-2v-4a2 2 0 00-2-2h-2.343M11 7.343l1.657-1.657a2 2 0 012.828 0l2.829 2.829a2 2 0 010 2.828l-8.486 8.485M7 17h.01"></path>
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold tracking-tight bg-gradient-to-r from-white via-slate-200 to-slate-400 bg-clip-text text-transparent">Vectora</h1>
+                    <p class="text-xs text-slate-400">Preservação Vetorial Absoluta & Exportador de SVG para PNG</p>
+                </div>
+            </div>
+            
+            <div class="flex items-center gap-2">
+                <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-500/10 text-emerald-400 border border-emerald-500/20">
+                    <span class="w-1.5 h-1.5 mr-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                    Renderização Não-Destrutiva Ativa
+                </span>
+            </div>
+        </div>
+    </header>
+
+    <!-- Conteúdo Principal -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        
+        <!-- Painel de Controlos Lateral (Esquerdo) -->
+        <section class="lg:col-span-5 flex flex-col gap-6">
+            
+            <!-- Upload de Ficheiros / Drag & Drop -->
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 shadow-2xl">
+                <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 mb-3 flex items-center gap-2">
+                    <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+                    Carregar Ficheiro SVG
+                </h2>
+                
+                <div id="dropzone" class="border-2 border-dashed border-slate-800 hover:border-indigo-500/50 bg-slate-900/40 hover:bg-slate-900/80 rounded-xl p-6 text-center cursor-pointer transition-all-custom group">
+                    <input type="file" id="file-input" accept=".svg" class="hidden" />
+                    <div class="flex flex-col items-center gap-3">
+                        <div class="p-3 bg-slate-800 rounded-lg group-hover:scale-110 transition-all-custom text-slate-400 group-hover:text-indigo-400">
+                            <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 13h6m-3-3v6m-9 1V7a2 2 0 012-2h6l2 2h6a2 2 0 012 2v8a2 2 0 01-2 2H5a2 2 0 01-2-2z"></path>
+                            </svg>
+                        </div>
+                        <div>
+                            <p class="text-sm font-medium text-slate-200">Arraste o seu SVG aqui ou <span class="text-indigo-400 underline decoration-indigo-400/30 group-hover:decoration-indigo-400">procure</span></p>
+                            <p class="text-xs text-slate-500 mt-1">Apenas ficheiros vetoriais normatizados (.svg)</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Editor de Cores Extraídas -->
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 shadow-2xl flex-1 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-cyan-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4"></path></svg>
+                        Paleta de Cores Detetada
+                    </h2>
+                    <span id="color-count" class="text-xs bg-slate-800 text-slate-300 px-2.5 py-0.5 rounded-full font-semibold">0 cores</span>
+                </div>
+
+                <!-- Feedbacks / Alertas personalizados -->
+                <div id="no-svg-placeholder" class="flex-1 flex flex-col items-center justify-center text-center p-8 border border-dashed border-slate-800/60 rounded-xl bg-slate-900/20 text-slate-500">
+                    <svg class="w-12 h-12 mb-3 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z"></path>
+                    </svg>
+                    <p class="text-sm font-medium">Nenhum SVG carregado ainda</p>
+                    <p class="text-xs text-slate-600 mt-1">Carregue um ficheiro para extrair a paleta de cores de forma segura e não-destrutiva.</p>
+                </div>
+
+                <!-- Lista dinâmica de inputs de cor -->
+                <div id="color-list-container" class="hidden flex-1 overflow-y-auto max-h-[320px] pr-1 space-y-3">
+                    <!-- Gerado dinamicamente via JS -->
+                </div>
+
+                <!-- Controlos do Editor (Repor, etc) -->
+                <div id="editor-actions" class="hidden pt-4 mt-4 border-t border-slate-800 flex justify-between gap-3">
+                    <button id="btn-reset" class="flex-1 py-2 px-4 rounded-xl bg-slate-900 border border-slate-800 hover:border-slate-700 text-slate-300 hover:text-white font-medium text-sm transition-all-custom flex items-center justify-center gap-2">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 1121.21 16H18"></path></svg>
+                        Restaurar Cores Originais
+                    </button>
+                </div>
+            </div>
+
+        </section>
+
+        <!-- Área de Visualização e Exportação (Direita) -->
+        <section class="lg:col-span-7 flex flex-col gap-6">
+            
+            <!-- Janela de Preview Principal -->
+            <div class="bg-slate-950 border border-slate-800 rounded-2xl p-5 shadow-2xl flex flex-col h-full min-h-[450px]">
+                <div class="flex flex-wrap justify-between items-center gap-3 mb-4">
+                    <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-400 flex items-center gap-2">
+                        <svg class="w-4 h-4 text-indigo-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"></path></svg>
+                        Visualização de Alta Fidelidade (Live Preview)
+                    </h2>
+
+                    <!-- Seletores de Plano de Fundo para Testes de Contraste -->
+                    <div class="flex items-center gap-1.5 bg-slate-900 border border-slate-800 p-1 rounded-lg">
+                        <button onclick="changeBg('checkerboard')" id="bg-btn-checkerboard" class="p-1 px-2.5 text-xs font-semibold rounded bg-slate-800 text-white transition-all-custom border border-slate-700/60" title="Quadriculado Transparente">
+                            Quadriculado
+                        </button>
+                        <button onclick="changeBg('light')" id="bg-btn-light" class="p-1 px-2.5 text-xs font-semibold rounded text-slate-400 hover:text-white transition-all-custom" title="Fundo Branco">
+                            Branco
+                        </button>
+                        <button onclick="changeBg('dark')" id="bg-btn-dark" class="p-1 px-2.5 text-xs font-semibold rounded text-slate-400 hover:text-white transition-all-custom" title="Fundo Escuro">
+                            Escuro
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Box Real do SVG Renderizado -->
+                <div class="flex-1 min-h-[300px] relative rounded-xl border border-slate-800 flex items-center justify-center p-8 overflow-hidden checkerboard transition-all-custom" id="preview-workspace">
+                    <div id="svg-preview-container" class="w-full h-full max-w-full max-h-full flex items-center justify-center">
+                        <div class="text-center text-slate-500 flex flex-col items-center gap-3">
+                            <div class="p-4 bg-slate-900/60 rounded-full border border-slate-800">
+                                <svg class="w-8 h-8 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+                            </div>
+                            <p class="text-sm font-medium">Carregue um ficheiro para exibir a prévia</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Painel de Exportação Canvas -->
+                <div id="export-panel" class="hidden mt-4 pt-4 border-t border-slate-800 flex flex-col sm:flex-row gap-4 items-center justify-between">
+                    <div class="text-left">
+                        <p class="text-xs text-slate-400 font-medium">Especificação de Exportação:</p>
+                        <p class="text-sm font-bold text-slate-200">PNG Transparente <span class="text-indigo-400">500 x 500 px</span></p>
+                    </div>
+                    
+                    <button id="btn-export" class="w-full sm:w-auto py-3 px-6 bg-gradient-to-r from-indigo-500 to-sky-500 hover:from-indigo-600 hover:to-sky-600 text-white font-bold text-sm rounded-xl transition-all-custom flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/10 hover:shadow-indigo-500/25 active:scale-[0.98]">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
+                        </svg>
+                        Exportar PNG Transparente
+                    </button>
+                </div>
+            </div>
+
+        </section>
+
+    </main>
+
+    <!-- Rodapé -->
+    <footer class="border-t border-slate-800 bg-slate-950 py-4 px-6 text-center text-xs text-slate-500">
+        <p>&copy; 2026 Vectora. Processamento de Imagens e Vetores realizado 100% no navegador (Client-side Canvas).</p>
+    </footer>
+
+    <!-- Elemento oculto para avaliação CSS segura do navegador -->
+    <div id="hidden-renderer" class="hidden" style="display: none; visibility: hidden; width: 0; height: 0;"></div>
+
+    <!-- Scripts e Lógica SPA -->
+    <script>
+        // --- Estado Global da Aplicação ---
+        let originalSvgDoc = null;      // O documento XML do SVG original carregado (intacto!)
+        let currentColors = [];         // Array de mapeamento de cores: { original: '#rrggbb', current: '#rrggbb' }
+        let currentBgType = 'checkerboard'; // Fundo do ecrã de visualização
+        const targetWidth = 500;        // Dimensão de exportação solicitada
+        const targetHeight = 500;       // Dimensão de exportação solicitada
+
+        // --- Inicialização ---
+        document.addEventListener('DOMContentLoaded', () => {
+            setupDragAndDrop();
+            setupFileSelector();
+            setupResetButton();
+            setupExportButton();
+        });
+
+        // --- Conversor de Cor Seguro ---
+        // Utiliza o próprio motor CSS do browser para normalizar qualquer cor válida em Hexadecimal de 6 dígitos
+        function normalizeColor(colorStr) {
+            if (!colorStr) return null;
+            const trimmed = colorStr.trim().toLowerCase();
+            
+            // Ignora termos estruturais ou referências de preenchimento do SVG
+            if (trimmed === 'none' || trimmed === 'transparent' || trimmed === 'inherit' || trimmed.startsWith('url')) {
+                return null;
+            }
+
+            const canvas = document.createElement('canvas');
+            canvas.width = 1;
+            canvas.height = 1;
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = trimmed;
+            
+            const resolved = ctx.fillStyle;
+            // Se o resolved for igual ao default inicial em caso de falha, validamos se era preto de verdade
+            if (resolved === '#000000' && trimmed !== 'black' && trimmed !== '#000' && trimmed !== '#000000' && !trimmed.startsWith('rgb(0,0,0)')) {
+                return null; // Não era uma cor válida estruturada
+            }
+            return resolved;
+        }
+
+        // --- Configuração de Upload e Leitura de Ficheiros ---
+        function setupDragAndDrop() {
+            const dropzone = document.getElementById('dropzone');
+            
+            dropzone.addEventListener('dragover', (e) => {
+                e.preventDefault();
+                dropzone.classList.add('border-indigo-500', 'bg-slate-900/90');
+                dropzone.classList.remove('border-slate-800', 'bg-slate-900/40');
+            });
+
+            dropzone.addEventListener('dragleave', () => {
+                dropzone.classList.remove('border-indigo-500', 'bg-slate-900/90');
+                dropzone.classList.add('border-slate-800', 'bg-slate-900/40');
+            });
+
+            dropzone.addEventListener('drop', (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('border-indigo-500', 'bg-slate-900/90');
+                dropzone.classList.add('border-slate-800', 'bg-slate-900/40');
+                
+                const file = e.dataTransfer.files[0];
+                if (file && file.type === 'image/svg+xml') {
+                    handleSvgFile(file);
+                } else {
+                    showBannerNotification('Por favor, envie um ficheiro válido no formato SVG (.svg).', 'error');
+                }
+            });
+
+            dropzone.addEventListener('click', () => {
+                document.getElementById('file-input').click();
+            });
+        }
+
+        function setupFileSelector() {
+            const input = document.getElementById('file-input');
+            input.addEventListener('change', (e) => {
+                const file = e.target.files[0];
+                if (file) {
+                    handleSvgFile(file);
+                }
+            });
+        }
+
+        function handleSvgFile(file) {
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                parseAndInitializeSvg(e.target.result);
+            };
+            reader.readAsText(file);
+        }
+
+        // --- Extração Inteligente Sem Desestruturar o SVG ---
+        function parseAndInitializeSvg(svgText) {
+            try {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(svgText, 'image/svg+xml');
+                
+                const parseError = doc.querySelector('parsererror');
+                if (parseError) {
+                    throw new Error('Falha ao interpretar o XML do SVG.');
+                }
+
+                const svgElement = doc.querySelector('svg');
+                if (!svgElement) {
+                    throw new Error('Elemento root <svg> não foi encontrado.');
+                }
+
+                // Ajusta proporções de exibição sem quebrar viewBox original
+                if (!svgElement.getAttribute('viewBox')) {
+                    const w = svgElement.getAttribute('width') || 100;
+                    const h = svgElement.getAttribute('height') || 100;
+                    svgElement.setAttribute('viewBox', `0 0 ${w} ${h}`);
+                }
+                svgElement.setAttribute('width', '100%');
+                svgElement.setAttribute('height', '100%');
+
+                originalSvgDoc = doc;
+                
+                // Extrai as cores de forma 100% segura
+                extractUniqueColors(svgText);
+                applyAndRenderSvg();
+                showEditorUI();
+                showBannerNotification('SVG carregado com sucesso!', 'success');
+            } catch (err) {
+                showBannerNotification('Erro ao processar o SVG: ' + err.message, 'error');
+                console.error(err);
+            }
+        }
+
+        // Procura cores declaradas explicitamente (atributos, inline styles, tags style) sem tocar nas estruturas
+        function extractUniqueColors(rawSvgText) {
+            const colorsFound = new Set();
+
+            // 1. Pesquisa todas as expressões Hexadecimal (#fff, #ffffff, #ffffffff)
+            const hexRegex = /#([0-9a-fA-F]{3,8})\b/g;
+            let match;
+            while ((match = hexRegex.exec(rawSvgText)) !== null) {
+                const norm = normalizeColor(match[0]);
+                if (norm) colorsFound.add(norm);
+            }
+
+            // 2. Pesquisa todas as chamadas de função rgb() e rgba()
+            const rgbRegex = /(rgb|rgba)\(\s*\d+\s*,\s*\d+\s*,\s*\d+\s*(?:,\s*[\d.]+\s*)?\)/gi;
+            while ((match = rgbRegex.exec(rawSvgText)) !== null) {
+                const norm = normalizeColor(match[0]);
+                if (norm) colorsFound.add(norm);
+            }
+
+            // 3. Pesquisa chamadas hsl() e hsla()
+            const hslRegex = /(hsl|hsla)\(\s*\d+\s*,\s*\d+%\s*,\s*\d+%\s*(?:,\s*[\d.]+\s*)?\)/gi;
+            while ((match = hslRegex.exec(rawSvgText)) !== null) {
+                const norm = normalizeColor(match[0]);
+                if (norm) colorsFound.add(norm);
+            }
+
+            // 4. Varre os atributos estruturais em busca de nomes de cores conhecidos
+            function traverseForAttributes(node) {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    ['fill', 'stroke', 'stop-color'].forEach(attr => {
+                        const val = node.getAttribute(attr);
+                        if (val) {
+                            const norm = normalizeColor(val);
+                            if (norm) colorsFound.add(norm);
+                        }
+                    });
+                }
+                for (let i = 0; i < node.childNodes.length; i++) {
+                    traverseForAttributes(node.childNodes[i]);
+                }
+            }
+            traverseForAttributes(originalSvgDoc.documentElement);
+
+            // Mapeia as cores únicas prontas para controlo do utilizador
+            currentColors = Array.from(colorsFound).map(color => ({
+                original: color,
+                current: color
+            }));
+
+            buildColorControls();
+        }
+
+        // --- Geração da Paleta do Utilizador ---
+        function buildColorControls() {
+            const container = document.getElementById('color-list-container');
+            const colorCountBadge = document.getElementById('color-count');
+            
+            container.innerHTML = '';
+            colorCountBadge.textContent = `${currentColors.length} ${currentColors.length === 1 ? 'cor' : 'cores'}`;
+
+            if (currentColors.length === 0) {
+                container.innerHTML = `
+                    <div class="text-center py-6 text-slate-500 text-xs">
+                        Nenhuma cor explícita foi mapeada neste vetor.
+                    </div>
+                `;
+                return;
+            }
+
+            currentColors.forEach((colorMap, index) => {
+                const row = document.createElement('div');
+                row.className = "flex items-center justify-between p-3 bg-slate-900 border border-slate-800 rounded-xl hover:border-slate-700 transition-all-custom";
+                
+                row.innerHTML = `
+                    <div class="flex items-center gap-3">
+                        <div class="w-7 h-7 rounded-lg border border-slate-700 shadow-inner" style="background-color: ${colorMap.original};" title="Cor Original"></div>
+                        <div class="text-left">
+                            <p class="text-xs font-semibold text-slate-300">Amostra #${index + 1}</p>
+                            <p class="text-[10px] text-slate-500 font-mono">${colorMap.original.toUpperCase()}</p>
+                        </div>
+                    </div>
+                    
+                    <div class="flex items-center gap-2">
+                        <svg class="w-4 h-4 text-slate-600" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M14 5l7 7m0 0l-7 7m7-7H3"></path></svg>
+                        
+                        <!-- Seletor Cromático -->
+                        <div class="relative w-12 h-8 rounded-lg overflow-hidden border border-indigo-500/20 hover:border-indigo-500/80 transition-all-custom cursor-pointer flex items-center justify-center">
+                            <input type="color" data-index="${index}" value="${colorMap.current}" 
+                                class="absolute inset-0 w-full h-full p-0 border-0 cursor-pointer opacity-100 bg-transparent transform scale-125" />
+                        </div>
+                    </div>
+                `;
+
+                const pickerInput = row.querySelector('input[type="color"]');
+                pickerInput.addEventListener('input', (e) => {
+                    const idx = parseInt(e.target.getAttribute('data-index'));
+                    currentColors[idx].current = e.target.value;
+                    applyAndRenderSvg();
+                });
+
+                container.appendChild(row);
+            });
+        }
+
+        // --- Renderização Não-Destrutiva Segura ---
+        // Altera exclusivamente os valores cromáticos mantendo a integridade de CSS e estilos complexos intactos!
+        function applyAndRenderSvg() {
+            if (!originalSvgDoc) return;
+
+            // Clona o documento intacto de modo a não poluir o ficheiro original
+            const clonedDoc = originalSvgDoc.cloneNode(true);
+
+            // 1. Atributos HTML diretos (fill, stroke, stop-color)
+            function updateNodeColors(node) {
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    ['fill', 'stroke', 'stop-color'].forEach(attr => {
+                        const val = node.getAttribute(attr);
+                        if (val) {
+                            const norm = normalizeColor(val);
+                            const match = currentColors.find(c => c.original === norm);
+                            if (match) {
+                                node.setAttribute(attr, match.current);
+                            }
+                        }
+                    });
+
+                    // 2. Estilos Inline (Sem apagar propriedades como opacidade ou transforms!)
+                    const styleAttr = node.getAttribute('style');
+                    if (styleAttr) {
+                        const updatedDeclarations = styleAttr.split(';').map(decl => {
+                            const parts = decl.split(':');
+                            if (parts.length === 2) {
+                                const prop = parts[0].trim().toLowerCase();
+                                const val = parts[1].trim();
+                                if (prop === 'fill' || prop === 'stroke' || prop === 'stop-color') {
+                                    const norm = normalizeColor(val);
+                                    const match = currentColors.find(c => c.original === norm);
+                                    if (match) {
+                                        return `${parts[0].trim()}: ${match.current}`;
+                                    }
+                                }
+                            }
+                            return decl;
+                        }).join(';');
+                        node.setAttribute('style', updatedDeclarations);
+                    }
+                }
+
+                for (let i = 0; i < node.childNodes.length; i++) {
+                    updateNodeColors(node.childNodes[i]);
+                }
+            }
+
+            updateNodeColors(clonedDoc.documentElement);
+
+            // 3. Folhas de estilo internas (<style>) de forma segura
+            const styleTags = clonedDoc.querySelectorAll('style');
+            styleTags.forEach(styleTag => {
+                let cssText = styleTag.textContent;
+                
+                // Mapeia todas as possíveis declarações de cores dentro do bloco CSS
+                const colorTokenRegex = /(#[0-9a-fA-F]{3,8}\b|(rgb|rgba|hsl|hsla)\([^)]+\)|[a-zA-Z]+)/gi;
+                cssText = cssText.replace(colorTokenRegex, (token) => {
+                    const norm = normalizeColor(token);
+                    if (norm) {
+                        const match = currentColors.find(c => c.original === norm);
+                        if (match) {
+                            return match.current; // Substitui apenas o código cromático mantendo o seletor intacto
+                        }
+                    }
+                    return token;
+                });
+                
+                styleTag.textContent = cssText;
+            });
+
+            // Serializa o SVG gerado para string XML
+            const serializer = new XMLSerializer();
+            const svgString = serializer.serializeToString(clonedDoc);
+
+            // Substitui na área de visualização sem destruir os componentes
+            const previewContainer = document.getElementById('svg-preview-container');
+            previewContainer.innerHTML = svgString;
+        }
+
+        // --- Controlos Globais de UI ---
+        function showEditorUI() {
+            document.getElementById('no-svg-placeholder').classList.add('hidden');
+            document.getElementById('color-list-container').classList.remove('hidden');
+            document.getElementById('editor-actions').classList.remove('hidden');
+            document.getElementById('export-panel').classList.remove('hidden');
+        }
+
+        function changeBg(type) {
+            const workspace = document.getElementById('preview-workspace');
+            
+            workspace.classList.remove('checkerboard', 'bg-white', 'bg-slate-950');
+            
+            document.getElementById('bg-btn-checkerboard').className = "p-1 px-2.5 text-xs font-semibold rounded text-slate-400 hover:text-white transition-all-custom";
+            document.getElementById('bg-btn-light').className = "p-1 px-2.5 text-xs font-semibold rounded text-slate-400 hover:text-white transition-all-custom";
+            document.getElementById('bg-btn-dark').className = "p-1 px-2.5 text-xs font-semibold rounded text-slate-400 hover:text-white transition-all-custom";
+
+            if (type === 'checkerboard') {
+                workspace.classList.add('checkerboard');
+                document.getElementById('bg-btn-checkerboard').className = "p-1 px-2.5 text-xs font-semibold rounded bg-slate-800 text-white transition-all-custom border border-slate-700/60";
+            } else if (type === 'light') {
+                workspace.classList.add('bg-white');
+                document.getElementById('bg-btn-light').className = "p-1 px-2.5 text-xs font-semibold rounded bg-slate-200 text-slate-800 transition-all-custom border border-slate-300";
+            } else if (type === 'dark') {
+                workspace.classList.add('bg-slate-950');
+                document.getElementById('bg-btn-dark').className = "p-1 px-2.5 text-xs font-semibold rounded bg-slate-800 text-white transition-all-custom border border-slate-700/60";
+            }
+            currentBgType = type;
+        }
+
+        function setupResetButton() {
+            const btn = document.getElementById('btn-reset');
+            btn.addEventListener('click', () => {
+                if (!originalSvgDoc) return;
+                
+                currentColors.forEach(color => {
+                    color.current = color.original;
+                });
+                
+                buildColorControls();
+                applyAndRenderSvg();
+                showBannerNotification('Cores restauradas com base no ficheiro original.', 'success');
+            });
+        }
+
+        // --- Exportador Seguro PNG 500x500 ---
+        function setupExportButton() {
+            const btn = document.getElementById('btn-export');
+            btn.addEventListener('click', () => {
+                if (!originalSvgDoc) {
+                    showBannerNotification('Por favor, carregue um SVG primeiro.', 'error');
+                    return;
+                }
+
+                btn.disabled = true;
+                const originalText = btn.innerHTML;
+                btn.innerHTML = `
+                    <svg class="animate-spin -ml-1 mr-3 h-5 w-5 text-white" fill="none" viewBox="0 0 24 24">
+                        <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                        <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                    </svg>
+                    Gerando Imagem PNG...
+                `;
+
+                setTimeout(() => {
+                    exportSvgToPng(() => {
+                        btn.disabled = false;
+                        btn.innerHTML = originalText;
+                    });
+                }, 400);
+            });
+        }
+
+        function exportSvgToPng(callback) {
+            try {
+                const previewContainer = document.getElementById('svg-preview-container');
+                const activeSvgElement = previewContainer.querySelector('svg');
+                if (!activeSvgElement) {
+                    throw new Error('SVG de visualização indisponível.');
+                }
+
+                // Clona para preservar o elemento do workspace
+                const clonedSvg = activeSvgElement.cloneNode(true);
+                clonedSvg.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+                
+                let originalWidth = 500;
+                let originalHeight = 500;
+
+                const viewBoxAttr = clonedSvg.getAttribute('viewBox');
+                if (viewBoxAttr) {
+                    const parts = viewBoxAttr.split(/[ ,]+/).map(Number);
+                    if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+                        originalWidth = parts[2];
+                        originalHeight = parts[3];
+                    }
+                } else {
+                    const wAttr = parseFloat(clonedSvg.getAttribute('width'));
+                    const hAttr = parseFloat(clonedSvg.getAttribute('height'));
+                    if (!isNaN(wAttr) && !isNaN(hAttr) && wAttr > 0 && hAttr > 0) {
+                        originalWidth = wAttr;
+                        originalHeight = hAttr;
+                    }
+                }
+
+                clonedSvg.setAttribute('width', originalWidth);
+                clonedSvg.setAttribute('height', originalHeight);
+
+                const serializer = new XMLSerializer();
+                const svgString = serializer.serializeToString(clonedSvg);
+                
+                const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+                const blobUrl = URL.createObjectURL(svgBlob);
+
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = targetWidth;
+                    canvas.height = targetHeight;
+                    const ctx = canvas.getContext('2d');
+
+                    ctx.clearRect(0, 0, targetWidth, targetHeight);
+
+                    const scale = Math.min(targetWidth / originalWidth, targetHeight / originalHeight);
+                    const drawWidth = originalWidth * scale;
+                    const drawHeight = originalHeight * scale;
+
+                    const xOffset = (targetWidth - drawWidth) / 2;
+                    const yOffset = (targetHeight - drawHeight) / 2;
+
+                    ctx.drawImage(img, xOffset, yOffset, drawWidth, drawHeight);
+
+                    try {
+                        const pngDataUrl = canvas.toDataURL('image/png');
+                        const downloadLink = document.createElement('a');
+                        downloadLink.href = pngDataUrl;
+                        downloadLink.download = 'vectora-export-500x500.png';
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+                        
+                        showBannerNotification('PNG transparente de 500x500 exportado!', 'success');
+                    } catch (err) {
+                        console.error(err);
+                        showBannerNotification('Erro ao compilar o ficheiro PNG.', 'error');
+                    } finally {
+                        URL.revokeObjectURL(blobUrl);
+                        if (callback) callback();
+                    }
+                };
+
+                img.onerror = (e) => {
+                    console.error(e);
+                    showBannerNotification('Erro ao carregar o renderizador de imagem.', 'error');
+                    URL.revokeObjectURL(blobUrl);
+                    if (callback) callback();
+                };
+
+                img.src = blobUrl;
+
+            } catch (err) {
+                console.error(err);
+                showBannerNotification('Erro crítico na exportação: ' + err.message, 'error');
+                if (callback) callback();
+            }
+        }
+
+        // --- Banner de Notificações ---
+        function showBannerNotification(message, type = 'success') {
+            const oldBanner = document.getElementById('notification-banner');
+            if (oldBanner) {
+                oldBanner.remove();
+            }
+
+            const banner = document.createElement('div');
+            banner.id = 'notification-banner';
+            banner.className = `fixed bottom-6 right-6 px-5 py-3.5 rounded-xl text-sm font-semibold shadow-2xl flex items-center gap-3 z-50 transform translate-y-10 opacity-0 transition-all duration-300 border`;
+            
+            if (type === 'success') {
+                banner.classList.add('bg-emerald-950', 'text-emerald-300', 'border-emerald-500/30');
+                banner.innerHTML = `
+                    <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>${message}</span>
+                `;
+            } else {
+                banner.classList.add('bg-rose-950', 'text-rose-300', 'border-rose-500/30');
+                banner.innerHTML = `
+                    <svg class="w-5 h-5 text-rose-400" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 14l2-2m0 0l2-2m-2 2l-2-2m2 2l2 2m7-2a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                    <span>${message}</span>
+                `;
+            }
+
+            document.body.appendChild(banner);
+            
+            setTimeout(() => {
+                banner.classList.remove('translate-y-10', 'opacity-0');
+            }, 10);
+
+            setTimeout(() => {
+                banner.classList.add('translate-y-10', 'opacity-0');
+                setTimeout(() => {
+                    banner.remove();
+                }, 300);
+            }, 4500);
+        }
+    </script>
+</body>
+</html>
